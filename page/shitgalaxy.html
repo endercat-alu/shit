@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shit星系模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle, #0a0a2e 0%, #000000 100%);
+            height: 100vh;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        .galaxy-container {
+            position: relative;
+            width: 100vw;
+            height: 70vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .central-shit {
+            position: absolute;
+            font-size: 8rem;
+            z-index: 10;
+            animation: centralRotate 10s linear infinite;
+            filter: drop-shadow(0 0 20px #ffd700);
+        }
+
+        .planet {
+            position: absolute;
+            font-size: 2rem;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            transform-origin: center;
+        }
+
+        .orbit {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        @keyframes centralRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes orbit1 {
+            from { transform: rotate(0deg) translateX(150px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(150px) rotate(-360deg); }
+        }
+
+        @keyframes orbit2 {
+            from { transform: rotate(0deg) translateX(200px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(200px) rotate(-360deg); }
+        }
+
+        @keyframes orbit3 {
+            from { transform: rotate(0deg) translateX(250px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(250px) rotate(-360deg); }
+        }
+
+        @keyframes orbit4 {
+            from { transform: rotate(0deg) translateX(300px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(300px) rotate(-360deg); }
+        }
+
+        @keyframes orbit5 {
+            from { transform: rotate(0deg) translateX(350px) rotate(0deg); }
+            to { transform: rotate(360deg) translateX(350px) rotate(-360deg); }
+        }
+
+        .control-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 0.9rem;
+            color: #ffd700;
+        }
+
+        .control-group input {
+            padding: 5px 10px;
+            border: 1px solid #ffd700;
+            border-radius: 5px;
+            background: rgba(255, 215, 0, 0.1);
+            color: white;
+            text-align: center;
+            width: 80px;
+        }
+
+        .control-group input:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .zoom-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .zoom-slider {
+            width: 150px;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(255, 215, 0, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .zoom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .zoom-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .zoom-value {
+            color: #ffd700;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .reset-btn {
+            padding: 10px 20px;
+            background: #ffd700;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            background: #ffed4e;
+            transform: scale(1.05);
+        }
+
+        .reset-btn:hover[style*="background: #ff6b6b"] {
+            background: #ff8e8e !important;
+        }
+
+        .info {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #ffd700;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .central-shit {
+                font-size: 4rem;
+            }
+            .planet {
+                font-size: 1.5rem;
+            }
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="galaxy-container" id="galaxyContainer">
+        <div class="central-shit">💩</div>
+    </div>
+
+    <div class="control-panel">
+        <div class="info">💩 Shit星系模拟器 💩</div>
+        <div class="controls">
+            <div class="control-group">
+                <label>行星数量</label>
+                <input type="number" id="planetCount" value="5" min="1" max="50">
+            </div>
+            <div class="zoom-control">
+                <label>页面缩放</label>
+                <input type="range" id="zoomSlider" class="zoom-slider" min="0.3" max="2" step="0.1" value="1">
+                <span class="zoom-value" id="zoomValue">100%</span>
+            </div>
+            <div class="control-group">
+                <label>最小轨道半径</label>
+                <input type="number" id="minRadius" value="150" min="100" max="200">
+            </div>
+            <div class="control-group">
+                <label>最大轨道半径</label>
+                <input type="number" id="maxRadius" value="350" min="250" max="500">
+            </div>
+            <div class="control-group">
+                <label>最小速度</label>
+                <input type="number" id="minSpeed" value="5" min="1" max="10">
+            </div>
+            <div class="control-group">
+                <label>最大速度</label>
+                <input type="number" id="maxSpeed" value="15" min="10" max="30">
+            </div>
+            <button class="reset-btn" onclick="generateGalaxy()">重新生成星系</button>
+            <button class="reset-btn" onclick="resetToDefaults()" style="background: #ff6b6b; margin-left: 10px;">重置所有选项</button>
+        </div>
+    </div>
+
+    <script>
+        let planets = [];
+        let animationId;
+
+        function getRandomFloat(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function createPlanet(index, radius, speed, size, rotation) {
+            const planet = document.createElement('div');
+            planet.className = 'planet';
+            planet.textContent = '💩';
+            planet.style.fontSize = `${size}rem`;
+            planet.style.transform = `rotate(${rotation}deg) translateX(${radius}px) rotate(-${rotation}deg)`;
+            planet.style.filter = `hue-rotate(${getRandomInt(0, 360)}deg) brightness(${getRandomFloat(0.7, 1.3)})`;
+            
+            return {
+                element: planet,
+                radius: radius,
+                speed: speed,
+                angle: rotation,
+                size: size
+            };
+        }
+
+        function createOrbit(radius) {
+            const orbit = document.createElement('div');
+            orbit.className = 'orbit';
+            orbit.style.width = `${radius * 2}px`;
+            orbit.style.height = `${radius * 2}px`;
+            orbit.style.left = `50%`;
+            orbit.style.top = `50%`;
+            orbit.style.transform = `translate(-50%, -50%)`;
+            return orbit;
+        }
+
+        function generateGalaxy() {
+            const container = document.getElementById('galaxyContainer');
+            const planetCount = parseInt(document.getElementById('planetCount').value);
+            const minRadius = parseInt(document.getElementById('minRadius').value);
+            const maxRadius = parseInt(document.getElementById('maxRadius').value);
+            const minSpeed = parseInt(document.getElementById('minSpeed').value);
+            const maxSpeed = parseInt(document.getElementById('maxSpeed').value);
+
+            // 清除现有行星和轨道
+            planets.forEach(planet => {
+                if (planet.element.parentNode) {
+                    planet.element.parentNode.removeChild(planet.element);
+                }
+            });
+            document.querySelectorAll('.orbit').forEach(orbit => orbit.remove());
+            planets = [];
+
+            // 生成新的行星系统
+            for (let i = 0; i < planetCount; i++) {
+                const radius = minRadius + (maxRadius - minRadius) * (i / (planetCount - 1));
+                const speed = getRandomFloat(minSpeed, maxSpeed);
+                const size = getRandomFloat(1.5, 3);
+                const initialRotation = getRandomInt(0, 360);
+
+                // 创建轨道
+                const orbit = createOrbit(radius);
+                container.appendChild(orbit);
+
+                // 创建行星
+                const planet = createPlanet(i, radius, speed, size, initialRotation);
+                container.appendChild(planet.element);
+                planets.push(planet);
+            }
+
+            // 开始动画
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            animate();
+        }
+
+        function animate() {
+            planets.forEach(planet => {
+                planet.angle += planet.speed * 0.1;
+                const x = Math.cos(planet.angle * Math.PI / 180) * planet.radius;
+                const y = Math.sin(planet.angle * Math.PI / 180) * planet.radius;
+                
+                planet.element.style.transform = `translate(${x}px, ${y}px) rotate(${planet.angle * 2}deg)`;
+            });
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // 缩放功能
+        function updateZoom() {
+            const zoomValue = document.getElementById('zoomSlider').value;
+            const galaxyContainer = document.getElementById('galaxyContainer');
+            const zoomDisplay = document.getElementById('zoomValue');
+
+            galaxyContainer.style.transform = `scale(${zoomValue})`;
+            zoomDisplay.textContent = `${Math.round(zoomValue * 100)}%`;
+        }
+
+        // 重置所有选项到默认值
+        function resetToDefaults() {
+            // 重置所有输入框到默认值
+            document.getElementById('planetCount').value = 5;
+            document.getElementById('minRadius').value = 150;
+            document.getElementById('maxRadius').value = 350;
+            document.getElementById('minSpeed').value = 5;
+            document.getElementById('maxSpeed').value = 15;
+            document.getElementById('zoomSlider').value = 1;
+
+            // 更新缩放显示
+            updateZoom();
+
+            // 重新生成星系
+            generateGalaxy();
+
+            // 显示重置完成的提示
+            const resetBtn = event.target;
+            const originalText = resetBtn.textContent;
+            resetBtn.textContent = '已重置！';
+            resetBtn.style.background = '#4CAF50';
+
+            setTimeout(() => {
+                resetBtn.textContent = originalText;
+                resetBtn.style.background = '#ff6b6b';
+            }, 1000);
+        }
+
+        // 监听控制面板变化
+        document.getElementById('planetCount').addEventListener('change', generateGalaxy);
+        document.getElementById('minRadius').addEventListener('change', generateGalaxy);
+        document.getElementById('maxRadius').addEventListener('change', generateGalaxy);
+        document.getElementById('minSpeed').addEventListener('change', generateGalaxy);
+        document.getElementById('maxSpeed').addEventListener('change', generateGalaxy);
+        document.getElementById('zoomSlider').addEventListener('input', updateZoom);
+
+        // 初始化星系和缩放
+        generateGalaxy();
+        updateZoom();
+    </script>
+</body>
+</html>

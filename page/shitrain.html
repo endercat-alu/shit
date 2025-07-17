@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>便便雨</title>
+    <style>
+        /* --- 基础样式 --- */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* 隐藏超出屏幕的元素，防止出现滚动条 */
+            background-color: #0f172a; /* 深蓝色背景，突出 emoji */
+            font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+        }
+
+        /* --- “便便”表情符号的样式 --- */
+        .poop {
+            position: absolute; /* 使用绝对定位，以便自由移动 */
+            user-select: none; /* 禁止用户选中 emoji 文本 */
+            pointer-events: none; /* 穿透鼠标事件，确保事件由 body 捕获 */
+            will-change: transform; /* 性能优化：告诉浏览器该元素的 transform 属性会频繁变化 */
+        }
+    </style>
+</head>
+<body>
+
+<script>
+    // --- 全局变量和常量 ---
+    const container = document.body;
+    const particles = []; // 存储所有“便便”粒子的数组
+    const PARTICLE_COUNT = 150; // 屏幕上同时存在的粒子数量
+    const ATTRACTION_RADIUS = 250; // 吸引力生效的半径（像素）
+    const ATTRACTION_STRENGTH = 0.008; // 吸引力的强度（值越小，聚集越慢）
+
+    let isPointerDown = false; // 标记鼠标或触摸是否按下
+    let pointer = { x: 0, y: 0 }; // 存储指针（鼠标或手指）的坐标
+
+    // --- 初始化 ---
+    // 页面加载完成后立即开始
+    window.addEventListener('load', () => {
+        setupEventListeners();
+        createInitialParticles();
+        animate();
+    });
+
+    /**
+     * 设置所有需要的事件监听器
+     */
+    function setupEventListeners() {
+        // 监听鼠标按下和触摸开始事件
+        container.addEventListener('mousedown', onPointerDown);
+        container.addEventListener('touchstart', onPointerDown, { passive: false });
+
+        // 监听鼠标松开和触摸结束事件
+        container.addEventListener('mouseup', onPointerUp);
+        container.addEventListener('touchend', onPointerUp);
+
+        // 监听鼠标移动和触摸滑动事件
+        container.addEventListener('mousemove', onPointerMove);
+        container.addEventListener('touchmove', onPointerMove, { passive: false });
+        
+        // 监听窗口大小变化
+        window.addEventListener('resize', onWindowResize);
+    }
+
+    /**
+     * 创建初始数量的“便便”粒子
+     */
+    function createInitialParticles() {
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push(createParticle());
+        }
+    }
+
+    /**
+     * 创建单个“便便”粒子对象
+     * @param {boolean} isInitial - 是否是初始创建（随机分布在屏幕上）
+     * @returns {object} 粒子对象
+     */
+    function createParticle(isInitial = true) {
+        const el = document.createElement('div');
+        el.className = 'poop';
+        el.textContent = '💩';
+        container.appendChild(el);
+
+        const particle = {
+            el: el,
+            // 位置
+            x: Math.random() * window.innerWidth,
+            y: isInitial ? Math.random() * window.innerHeight : -50,
+            // 速度
+            vx: 0,
+            vy: 0,
+            // 基础下落速度
+            baseSpeed: 1 + Math.random() * 2,
+            // 大小
+            size: 15 + Math.random() * 20,
+        };
+
+        particle.el.style.fontSize = `${particle.size}px`;
+        return particle;
+    }
+
+    // --- 动画循环 ---
+    /**
+     * 主动画循环，使用 requestAnimationFrame 以获得最佳性能
+     */
+    function animate() {
+        particles.forEach(p => {
+            // 如果指针被按下，计算吸引力
+            if (isPointerDown) {
+                const dx = pointer.x - p.x;
+                const dy = pointer.y - p.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // 如果在吸引半径内，施加一个朝向指针的力
+                if (distance < ATTRACTION_RADIUS) {
+                    // 简单的线性吸引力
+                    p.vx += dx * ATTRACTION_STRENGTH;
+                    p.vy += dy * ATTRACTION_STRENGTH;
+                }
+            }
+
+            // 模拟空气阻力/摩擦力，让粒子移动更自然
+            p.vx *= 0.95;
+            p.vy *= 0.95;
+
+            // 更新粒子的位置
+            p.x += p.vx;
+            p.y += p.vy + p.baseSpeed; // 加上基础下落速度
+
+            // 粒子回收机制
+            // 如果粒子掉出屏幕底部或被吸引力拉出屏幕边界，则重置它
+            if (p.y > window.innerHeight + p.size || p.x < -p.size || p.x > window.innerWidth + p.size) {
+                resetParticle(p);
+            }
+
+            // 应用变换，移动粒子
+            p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
+        });
+
+        requestAnimationFrame(animate); // 请求下一帧动画
+    }
+    
+    /**
+     * 重置单个粒子的状态，让它从顶部重新下落
+     * @param {object} particle - 需要重置的粒子对象
+     */
+    function resetParticle(particle) {
+        particle.x = Math.random() * window.innerWidth;
+        particle.y = -particle.size; // 从屏幕顶部外开始
+        particle.vx = 0;
+        particle.vy = 0;
+    }
+
+
+    // --- 事件处理函数 ---
+    /**
+     * 更新指针位置（兼容鼠标和触摸）
+     * @param {Event} e - 事件对象
+     */
+    function updatePointerPosition(e) {
+        if (e.touches) {
+            // 触摸事件
+            pointer.x = e.touches[0].clientX;
+            pointer.y = e.touches[0].clientY;
+            e.preventDefault(); // 阻止触摸滑动时页面滚动
+        } else {
+            // 鼠标事件
+            pointer.x = e.clientX;
+            pointer.y = e.clientY;
+        }
+    }
+
+    function onPointerDown(e) {
+        isPointerDown = true;
+        updatePointerPosition(e);
+    }
+
+    function onPointerUp() {
+        isPointerDown = false;
+    }
+
+    function onPointerMove(e) {
+        if (isPointerDown) {
+            updatePointerPosition(e);
+        }
+    }
+    
+    /**
+     * 当窗口大小改变时，将所有粒子重新随机分布
+     */
+    function onWindowResize() {
+        particles.forEach(p => {
+             // 将粒子随机放置在新窗口尺寸内
+            p.x = Math.random() * window.innerWidth;
+            p.y = Math.random() * window.innerHeight;
+            p.vx = 0;
+            p.vy = 0;
+        });
+    }
+
+</script>
+</body>
+</html>

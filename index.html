@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>I am Shit</title>
+    <!-- Markdown解析库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -126,37 +128,123 @@
             margin-bottom: 20px;
         }
 
-        .article-placeholder {
+        .article-list {
+            margin-top: 20px;
+        }
+
+        .article-item {
             background: #f8f9fa;
-            border: 3px dotted #6c757d;
+            border: 2px solid #4ecdc4;
             border-radius: 15px;
-            padding: 40px;
-            text-align: center;
-            color: #6c757d;
-            font-size: 1.2rem;
-            min-height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 20px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .article-item:hover {
+            transform: translateY(-5px) rotate(1deg);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border-color: #ff6b6b;
+        }
+
+        .article-item::before {
+            content: "💩";
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+            opacity: 0.3;
+        }
+
+        .article-item-title {
+            font-size: 1.5rem;
+            color: #2d3436;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .article-item-description {
+            color: #636e72;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .article-item-date {
+            color: #74b9ff;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .article-content {
+            display: none;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 20px;
+            border: 3px solid #00b894;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             position: relative;
         }
 
-        .article-placeholder::before {
-            content: "🚧";
+        .article-content::before {
+            content: "�";
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 15px;
+            right: 20px;
             font-size: 2rem;
-            animation: bounce 1s infinite;
+            opacity: 0.3;
         }
 
-        .article-placeholder::after {
-            content: "🚧";
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 2rem;
-            animation: bounce 1s infinite 0.5s;
+        .article-content h2 {
+            color: #2d3436;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #4ecdc4;
+            padding-bottom: 10px;
+        }
+
+        .article-content p {
+            line-height: 1.8;
+            margin-bottom: 15px;
+            color: #2d3436;
+        }
+
+        .back-button {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #636e72;
+        }
+
+        .loading::before {
+            content: "💩";
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         @keyframes bounce {
@@ -261,14 +349,16 @@
             <!-- 文章区域 -->
             <div class="article-section">
                 <h1 class="article-title">💩 欢迎来到屎界奇观 💩</h1>
-                <div class="article-placeholder">
-                    <div>
-                        <h3>🚧 此处正在施工中... 🚧</h3>
-                        <p>传说中的屎文章即将降临...</p>
-                        <p>敬请期待史上最荒诞的内容！</p>
-                        <br>
-                        <small>💩 屎界文学创作委员会 💩</small>
-                    </div>
+
+                <!-- 文章列表 -->
+                <div id="articleList" class="article-list">
+                    <div class="loading">正在加载屎文章...</div>
+                </div>
+
+                <!-- 文章详情 -->
+                <div id="articleContent" class="article-content">
+                    <button class="back-button" onclick="showArticleList()">← 返回文章列表</button>
+                    <div id="articleContentBody"></div>
                 </div>
             </div>
 
@@ -317,6 +407,9 @@
                 document.body.style.overflow = 'auto';
                 mainContent.style.display = 'block';
 
+                // 加载文章列表
+                loadArticleList();
+
                 // 添加入场动画
                 setTimeout(() => {
                     mainContent.style.opacity = '0';
@@ -339,6 +432,81 @@
                 showMainContent();
             }
         });
+
+        // 文章相关功能
+        let currentPosts = [];
+
+        // 加载文章列表
+        async function loadArticleList() {
+            try {
+                const response = await fetch('post/post.json');
+                if (!response.ok) {
+                    throw new Error('无法获取文章数据');
+                }
+
+                const data = await response.json();
+                currentPosts = data.posts || [];
+                displayArticleList();
+
+            } catch (error) {
+                console.error('加载文章列表失败:', error);
+                document.getElementById('articleList').innerHTML =
+                    '<div class="loading">💩 文章服务器正在拉屎中，请稍后再试...</div>';
+            }
+        }
+
+        // 显示文章列表
+        function displayArticleList() {
+            const articleList = document.getElementById('articleList');
+
+            if (currentPosts.length === 0) {
+                articleList.innerHTML = '<div class="loading">暂无屎文章，敬请期待...</div>';
+                return;
+            }
+
+            let html = '';
+            currentPosts.forEach(post => {
+                html += `
+                    <div class="article-item" onclick="loadArticle('${post.filename}', '${post.title}')">
+                        <div class="article-item-title">${post.title}</div>
+                        <div class="article-item-description">${post.description}</div>
+                        <div class="article-item-date">📅 ${post.date}</div>
+                    </div>
+                `;
+            });
+
+            articleList.innerHTML = html;
+        }
+
+        // 加载并显示文章内容
+        async function loadArticle(filename, title) {
+            try {
+                document.getElementById('articleList').style.display = 'none';
+                document.getElementById('articleContent').style.display = 'block';
+                document.getElementById('articleContentBody').innerHTML = '<div class="loading">正在加载文章内容...</div>';
+
+                const response = await fetch(`post/${filename}`);
+                if (!response.ok) {
+                    throw new Error('无法获取文章内容');
+                }
+
+                const markdownContent = await response.text();
+                const htmlContent = marked.parse(markdownContent);
+
+                document.getElementById('articleContentBody').innerHTML = htmlContent;
+
+            } catch (error) {
+                console.error('加载文章失败:', error);
+                document.getElementById('articleContentBody').innerHTML =
+                    '<div class="loading">💩 文章内容加载失败，可能被屎堵住了...</div>';
+            }
+        }
+
+        // 返回文章列表
+        function showArticleList() {
+            document.getElementById('articleContent').style.display = 'none';
+            document.getElementById('articleList').style.display = 'block';
+        }
 
         // 随机屎知识 - 从API获取
         async function randomShitFact() {

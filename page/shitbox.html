@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜Shit游戏</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <style>
+        /* --- 基础样式 --- */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .title {
+            text-align: center;
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .game-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .boxes-container {
+            position: relative;
+            width: 80%;
+            height: 60%;
+            max-width: 800px;
+            max-height: 400px;
+        }
+
+        .box {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: #fff;
+            border: 3px solid #333;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            user-select: none;
+        }
+
+        .box:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        .box.hidden {
+            background: #ddd;
+        }
+
+        .box.hidden .content {
+            display: none;
+        }
+
+        .box.correct {
+            background: #4CAF50;
+            animation: bounce 0.5s ease;
+        }
+
+        .box.wrong {
+            background: #f44336;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 60%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            80% { transform: translateY(-10px); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+
+        .controls {
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .control-group input {
+            width: 60px;
+            padding: 5px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+
+
+        .btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.5em;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .countdown {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            z-index: 100;
+            display: none;
+        }
+
+        .status-hint.show {
+            display: block;
+            animation: fadeInOut 2s ease;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            20%, 80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+
+        /* 手机适配样式 */
+        .mobile-gaming .title {
+            display: none;
+        }
+
+        .mobile-gaming .controls {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.95);
+            padding: 8px 15px;
+            border-radius: 20px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .mobile-gaming .controls .control-group {
+            display: none;
+        }
+
+        .mobile-gaming .controls #gameBtn {
+            padding: 8px 16px;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .mobile-gaming .game-area {
+            padding-top: 60px; /* 为顶部按钮留出空间 */
+        }
+
+        /* 检测手机设备 */
+        @media (max-width: 768px) and (pointer: coarse) {
+            .game-container {
+                padding: 10px;
+            }
+
+            .title {
+                font-size: 2em;
+                margin-bottom: 15px;
+            }
+
+            .controls {
+                padding: 15px;
+                gap: 15px;
+            }
+
+            .control-group label {
+                font-size: 14px;
+            }
+
+            .control-group input {
+                width: 50px;
+                font-size: 14px;
+            }
+
+            .btn {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">🎯 猜Shit游戏 💩</h1>
+        
+        <div class="game-area">
+            <div class="boxes-container" id="boxesContainer">
+                <!-- 盒子将在这里动态生成 -->
+            </div>
+            <div class="countdown" id="countdown" style="display: none;"></div>
+            <div class="status-hint" id="statusHint"></div>
+        </div>
+
+        <div class="message" id="message"></div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="totalBoxes">总盒子数 (N):</label>
+                <input type="number" id="totalBoxes" min="2" max="10" value="3">
+            </div>
+            <div class="control-group">
+                <label for="cleanBoxes">无shit盒子数 (n):</label>
+                <input type="number" id="cleanBoxes" min="1" max="5" value="1">
+            </div>
+            <div class="control-group">
+                <label for="showTime">显示时间 (t秒):</label>
+                <input type="number" id="showTime" min="1" max="10" value="1">
+            </div>
+            <div class="control-group">
+                <label for="animationSpeed">动画速度:</label>
+                <input type="number" id="animationSpeed" min="0.5" max="5" step="0.1" value="1.5">
+            </div>
+            <div class="control-group">
+                <label for="delayTime">延迟时间 (t1秒):</label>
+                <input type="number" id="delayTime" min="0" value="5">
+            </div>
+            <button class="btn" id="gameBtn" onclick="toggleGame()">开始游戏</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            isPlaying: false,
+            isShowing: false,
+            canSelect: false,
+            boxes: [],
+            cleanBoxIndices: [],
+            totalBoxes: 3,
+            cleanBoxes: 1,
+            showTime: 1,
+            delayTime: 5,
+            animationSpeed: 1.5,
+            animationId: null,
+            startTime: 0,
+            isMobile: false
+        };
+
+        // 检测是否为手机设备
+        function detectMobile() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isSmallScreen = window.innerWidth <= 768;
+
+            gameState.isMobile = isMobileUA && isTouchDevice && isSmallScreen;
+            return gameState.isMobile;
+        }
+
+        // 初始化游戏
+        function initGame() {
+            const container = document.getElementById('boxesContainer');
+            container.innerHTML = '';
+            gameState.boxes = [];
+
+            // 获取参数
+            gameState.totalBoxes = parseInt(document.getElementById('totalBoxes').value);
+            gameState.cleanBoxes = parseInt(document.getElementById('cleanBoxes').value);
+            gameState.showTime = parseInt(document.getElementById('showTime').value);
+            gameState.delayTime = parseInt(document.getElementById('delayTime').value);
+            gameState.animationSpeed = parseFloat(document.getElementById('animationSpeed').value);
+
+            // 验证参数
+            if (gameState.cleanBoxes >= gameState.totalBoxes) {
+                showMessage('无shit盒子数不能大于等于总盒子数！');
+                return false;
+            }
+
+            // 随机选择哪些盒子是干净的
+            gameState.cleanBoxIndices = [];
+            while (gameState.cleanBoxIndices.length < gameState.cleanBoxes) {
+                const index = Math.floor(Math.random() * gameState.totalBoxes);
+                if (!gameState.cleanBoxIndices.includes(index)) {
+                    gameState.cleanBoxIndices.push(index);
+                }
+            }
+
+            // 创建盒子
+            for (let i = 0; i < gameState.totalBoxes; i++) {
+                const box = createBox(i);
+                gameState.boxes.push(box);
+                container.appendChild(box.element);
+            }
+
+            // 初始位置排列
+            arrangeBoxes();
+            return true;
+        }
+
+        // 创建单个盒子
+        function createBox(index) {
+            const element = document.createElement('div');
+            element.className = 'box';
+            element.onclick = () => selectBox(index);
+
+            const content = document.createElement('div');
+            content.className = 'content';
+            content.textContent = gameState.cleanBoxIndices.includes(index) ? '✨' : '💩';
+            element.appendChild(content);
+
+            return {
+                element: element,
+                index: index,
+                x: 0,
+                y: 0,
+                targetX: 0,
+                targetY: 0,
+                isClean: gameState.cleanBoxIndices.includes(index)
+            };
+        }
+
+        // 排列盒子初始位置
+        function arrangeBoxes() {
+            const container = document.getElementById('boxesContainer');
+            const containerRect = container.getBoundingClientRect();
+            const boxSize = 80;
+            const gap = 20;
+
+            // 计算网格布局
+            const cols = Math.ceil(Math.sqrt(gameState.totalBoxes));
+            const rows = Math.ceil(gameState.totalBoxes / cols);
+
+            const totalWidth = cols * boxSize + (cols - 1) * gap;
+            const totalHeight = rows * boxSize + (rows - 1) * gap;
+
+            const startX = (containerRect.width - totalWidth) / 2;
+            const startY = (containerRect.height - totalHeight) / 2;
+
+            gameState.boxes.forEach((box, index) => {
+                const row = Math.floor(index / cols);
+                const col = index % cols;
+
+                box.x = startX + col * (boxSize + gap);
+                box.y = startY + row * (boxSize + gap);
+                box.targetX = box.x;
+                box.targetY = box.y;
+
+                box.element.style.left = box.x + 'px';
+                box.element.style.top = box.y + 'px';
+            });
+        }
+
+        // 智能游戏按钮切换
+        function toggleGame() {
+            if (gameState.isPlaying) {
+                resetGame();
+            } else {
+                startGame();
+            }
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (!initGame()) return;
+
+            gameState.isPlaying = true;
+            gameState.isShowing = true;
+            gameState.canSelect = false;
+            gameState.startTime = Date.now();
+
+            // 更新按钮状态
+            updateGameButton();
+
+            // 手机适配：隐藏控制栏和标题
+            if (gameState.isMobile) {
+                document.body.classList.add('mobile-gaming');
+            }
+
+            // 禁用控制参数
+            document.getElementById('totalBoxes').disabled = true;
+            document.getElementById('cleanBoxes').disabled = true;
+            document.getElementById('showTime').disabled = true;
+            document.getElementById('delayTime').disabled = true;
+            document.getElementById('animationSpeed').disabled = true;
+
+            // 显示内容物
+            gameState.boxes.forEach(box => {
+                box.element.classList.remove('hidden');
+            });
+
+            // 开始倒计时
+            startCountdown();
+        }
+
+        // 倒计时显示
+        function startCountdown() {
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.style.display = 'block';
+            let timeLeft = gameState.showTime;
+
+            const updateCountdown = () => {
+                countdownEl.textContent = `${timeLeft}秒`;
+                timeLeft--;
+
+                if (timeLeft < 0) {
+                    countdownEl.style.display = 'none';
+                    hideContents();
+                } else {
+                    setTimeout(updateCountdown, 1000);
+                }
+            };
+
+            updateCountdown();
+        }
+
+        // 隐藏内容并开始动画
+        function hideContents() {
+            gameState.isShowing = false;
+
+            // 隐藏所有盒子内容
+            gameState.boxes.forEach(box => {
+                box.element.classList.add('hidden');
+            });
+
+            // 开始移动动画
+            startAnimation();
+
+            // 设置延迟后允许选择
+            setTimeout(() => {
+                if (gameState.isPlaying) {
+                    gameState.canSelect = true;
+                    showStatusHint('可以选择了');
+                }
+            }, gameState.delayTime * 1000);
+        }
+
+        // 开始盒子混沌运动动画
+        function startAnimation() {
+            const container = document.getElementById('boxesContainer');
+            const containerRect = container.getBoundingClientRect();
+
+            // 为每个盒子设置混沌运动参数
+            gameState.boxes.forEach((box, index) => {
+                // 每个盒子有不同的混沌参数
+                box.chaosA = 2.5 + Math.random() * 2; // 混沌系数A
+                box.chaosB = 1.8 + Math.random() * 1.5; // 混沌系数B
+                box.chaosC = 0.3 + Math.random() * 0.4; // 混沌系数C
+                box.phase = Math.random() * Math.PI * 2; // 相位偏移
+                box.centerX = containerRect.width / 2; // 中心X
+                box.centerY = containerRect.height / 2; // 中心Y
+                box.radiusX = (containerRect.width - 80) * 0.4; // X轴半径
+                box.radiusY = (containerRect.height - 80) * 0.4; // Y轴半径
+            });
+
+            // 动画循环
+            const animate = () => {
+                const currentTime = (Date.now() - gameState.startTime) / 1000; // 当前时间（秒）
+                const speed = gameState.animationSpeed;
+
+                gameState.boxes.forEach((box, index) => {
+                    // 混沌运动方程 - 基于洛伦兹吸引子的变形
+                    const t = currentTime * speed + box.phase;
+
+                    // 使用多个正弦和余弦函数创建复杂的混沌轨迹
+                    const x1 = Math.sin(t * box.chaosA) * Math.cos(t * box.chaosB);
+                    const y1 = Math.cos(t * box.chaosA) * Math.sin(t * box.chaosB);
+                    const x2 = Math.sin(t * box.chaosC) * 0.5;
+                    const y2 = Math.cos(t * box.chaosC) * 0.5;
+
+                    // 组合多个混沌分量
+                    const chaosX = (x1 + x2) * box.radiusX;
+                    const chaosY = (y1 + y2) * box.radiusY;
+
+                    // 计算最终位置
+                    box.x = box.centerX + chaosX - 40; // 减去盒子宽度的一半
+                    box.y = box.centerY + chaosY - 40; // 减去盒子高度的一半
+
+                    // 确保盒子在边界内
+                    box.x = Math.max(0, Math.min(containerRect.width - 80, box.x));
+                    box.y = Math.max(0, Math.min(containerRect.height - 80, box.y));
+
+                    box.element.style.left = box.x + 'px';
+                    box.element.style.top = box.y + 'px';
+                });
+
+                if (gameState.isPlaying) {
+                    gameState.animationId = requestAnimationFrame(animate);
+                }
+            };
+
+            animate();
+        }
+
+        // 选择盒子
+        function selectBox(index) {
+            if (!gameState.isPlaying || gameState.isShowing || !gameState.canSelect) {
+                if (!gameState.canSelect && gameState.isPlaying && !gameState.isShowing) {
+                    showStatusHint('请等待延迟时间结束');
+                }
+                return;
+            }
+
+            const selectedBox = gameState.boxes[index];
+
+            // 停止动画
+            if (gameState.animationId) {
+                cancelAnimationFrame(gameState.animationId);
+                gameState.animationId = null;
+            }
+
+            // 显示所有盒子内容
+            gameState.boxes.forEach(box => {
+                box.element.classList.remove('hidden');
+            });
+
+            // 检查选择是否正确
+            if (selectedBox.isClean) {
+                selectedBox.element.classList.add('correct');
+                showMessage('🎉 恭喜！你找到了干净的盒子！');
+            } else {
+                selectedBox.element.classList.add('wrong');
+                // 高亮显示所有正确答案
+                gameState.boxes.forEach(box => {
+                    if (box.isClean) {
+                        box.element.classList.add('correct');
+                    }
+                });
+                showMessage('💩 踩到狗屎了！');
+            }
+
+            // 游戏结束
+            gameState.isPlaying = false;
+
+            // 手机适配：恢复控制栏和标题显示
+            if (gameState.isMobile) {
+                document.body.classList.remove('mobile-gaming');
+            }
+
+            // 延迟后重新启用控制参数和更新按钮
+            setTimeout(() => {
+                updateGameButton();
+                document.getElementById('totalBoxes').disabled = false;
+                document.getElementById('cleanBoxes').disabled = false;
+                document.getElementById('showTime').disabled = false;
+                document.getElementById('delayTime').disabled = false;
+                document.getElementById('animationSpeed').disabled = false;
+            }, 2000);
+        }
+
+        // 重置游戏
+        function resetGame() {
+            // 停止动画
+            if (gameState.animationId) {
+                cancelAnimationFrame(gameState.animationId);
+                gameState.animationId = null;
+            }
+
+            // 重置状态
+            gameState.isPlaying = false;
+            gameState.isShowing = false;
+            gameState.canSelect = false;
+
+            // 手机适配：恢复控制栏和标题显示
+            if (gameState.isMobile) {
+                document.body.classList.remove('mobile-gaming');
+            }
+
+            // 清空容器
+            const container = document.getElementById('boxesContainer');
+            container.innerHTML = '';
+
+            // 隐藏倒计时和消息
+            document.getElementById('countdown').style.display = 'none';
+            hideMessage();
+
+            // 更新按钮状态和重新启用控制参数
+            updateGameButton();
+            document.getElementById('totalBoxes').disabled = false;
+            document.getElementById('cleanBoxes').disabled = false;
+            document.getElementById('showTime').disabled = false;
+            document.getElementById('delayTime').disabled = false;
+            document.getElementById('animationSpeed').disabled = false;
+        }
+
+        // 显示消息
+        function showMessage(text, duration = 3000) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.classList.add('show');
+
+            setTimeout(() => {
+                hideMessage();
+            }, duration);
+        }
+
+        // 隐藏消息
+        function hideMessage() {
+            const messageEl = document.getElementById('message');
+            messageEl.classList.remove('show');
+        }
+
+        // 显示状态提示（底部小字）
+        function showStatusHint(text) {
+            const hintEl = document.getElementById('statusHint');
+            hintEl.textContent = text;
+            hintEl.classList.remove('show');
+            // 强制重绘以重新触发动画
+            hintEl.offsetHeight;
+            hintEl.classList.add('show');
+
+            // 2秒后自动隐藏
+            setTimeout(() => {
+                hintEl.classList.remove('show');
+            }, 2000);
+        }
+
+        // 更新游戏按钮状态
+        function updateGameButton() {
+            const btn = document.getElementById('gameBtn');
+            if (gameState.isPlaying) {
+                btn.textContent = '重新开始';
+                btn.disabled = false;
+            } else {
+                btn.textContent = '开始游戏';
+                btn.disabled = false;
+            }
+        }
+
+        // 窗口大小改变时重新排列盒子和检测设备
+        window.addEventListener('resize', () => {
+            // 重新检测是否为手机设备
+            detectMobile();
+
+            if (!gameState.isPlaying && gameState.boxes.length > 0) {
+                arrangeBoxes();
+            }
+        });
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', () => {
+            // 初始化手机检测
+            detectMobile();
+
+            // 验证输入值
+            document.getElementById('totalBoxes').addEventListener('change', function() {
+                const cleanBoxes = parseInt(document.getElementById('cleanBoxes').value);
+                const totalBoxes = parseInt(this.value);
+                if (cleanBoxes >= totalBoxes) {
+                    document.getElementById('cleanBoxes').value = Math.max(1, totalBoxes - 1);
+                }
+            });
+
+            document.getElementById('cleanBoxes').addEventListener('change', function() {
+                const totalBoxes = parseInt(document.getElementById('totalBoxes').value);
+                const cleanBoxes = parseInt(this.value);
+                if (cleanBoxes >= totalBoxes) {
+                    this.value = Math.max(1, totalBoxes - 1);
+                }
+            });
+
+            // 延迟时间输入框事件监听
+            document.getElementById('delayTime').addEventListener('change', function() {
+                const delay = parseInt(this.value);
+                if (delay < 0) {
+                    this.value = 0;
+                }
+            });
+
+            // 动画速度输入框事件监听
+            document.getElementById('animationSpeed').addEventListener('change', function() {
+                const speed = parseFloat(this.value);
+                // 验证输入值
+                if (speed < 0.5) {
+                    this.value = 0.5;
+                    return;
+                }
+                if (speed > 5) {
+                    this.value = 5;
+                    return;
+                }
+                // 如果游戏正在进行中，实时更新速度
+                if (gameState.isPlaying && !gameState.isShowing) {
+                    gameState.animationSpeed = speed;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shit Storm - 💩风暴</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+        }
+
+        #bigShit {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 120px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            animation: pulse 2s infinite;
+        }
+
+        #bigShit:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        .smallShit {
+            position: absolute;
+            font-size: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: bounce 1s ease-out;
+        }
+
+        .smallShit:hover {
+            transform: scale(1.2);
+        }
+
+        @keyframes bounce {
+            0% { transform: scale(0) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .exploding {
+            animation: explode 0.3s ease-out forwards;
+        }
+
+        #controlPanel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+        }
+
+        .control-group input {
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+            width: 60px;
+            text-align: center;
+        }
+
+        #startBtn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        #startBtn:hover {
+            background: #ff5252;
+        }
+
+
+
+        #gameInfo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 10px;
+        }
+
+        #timer {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+
+        #gameOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        #gameOverlay h2 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        #restartBtn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+
+        .instructions {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .instructions:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .instructions.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="bigShit">💩</div>
+        
+        <div id="gameInfo">
+            <div>剩余💩: <span id="shitCount">0</span></div>
+            <div>得分: <span id="score">0</span></div>
+            <div id="timer">准备开始</div>
+        </div>
+
+        <div class="instructions" id="instructions">
+            <h3>游戏说明 <small>(点击隐藏)</small></h3>
+            <p>• 点击大💩开始游戏</p>
+            <p>• 快速点击小💩消灭它们</p>
+            <p>• 小💩会在时间内分裂</p>
+            <p>• 在时间结束前消灭所有💩</p>
+        </div>
+    </div>
+
+    <div id="controlPanel">
+        <div class="control-group">
+            <label for="shitCount">初始💩数量 (N):</label>
+            <input type="number" id="shitCountInput" value="5" min="3" max="15">
+        </div>
+        <div class="control-group">
+            <label for="splitTime">分裂时间 (t秒):</label>
+            <input type="number" id="splitTimeInput" value="3" min="1" max="10">
+        </div>
+        <div class="control-group">
+            <label for="totalTime">总时间 (T秒):</label>
+            <input type="number" id="totalTimeInput" value="30" min="10" max="120">
+        </div>
+        <button id="startBtn">开始游戏</button>
+    </div>
+
+    <div id="gameOverlay">
+        <h2 id="gameResult"></h2>
+        <p id="gameStats"></p>
+        <button id="restartBtn">再来一局</button>
+    </div>
+
+    <script>
+        class ShitStorm {
+            constructor() {
+                this.gameContainer = document.getElementById('gameContainer');
+                this.bigShit = document.getElementById('bigShit');
+                this.timer = document.getElementById('timer');
+                this.shitCountDisplay = document.getElementById('shitCount');
+                this.scoreDisplay = document.getElementById('score');
+                this.gameOverlay = document.getElementById('gameOverlay');
+                this.gameResult = document.getElementById('gameResult');
+                this.gameStats = document.getElementById('gameStats');
+                this.instructions = document.getElementById('instructions');
+
+                this.isGameActive = false;
+                this.smallShits = [];
+                this.score = 0;
+                this.gameTimer = null;
+                this.splitTimers = [];
+                this.timeLeft = 0;
+
+                this.initEventListeners();
+            }
+
+            initEventListeners() {
+                this.bigShit.addEventListener('click', () => this.startGame());
+                document.getElementById('startBtn').addEventListener('click', () => {
+                    if (this.isGameActive) {
+                        this.restartGame();
+                    } else {
+                        this.startGame();
+                    }
+                });
+                document.getElementById('restartBtn').addEventListener('click', () => this.restartGame());
+
+                // 规则框点击隐藏
+                this.instructions.addEventListener('click', () => {
+                    this.instructions.classList.add('hidden');
+                });
+            }
+
+            startGame() {
+                if (this.isGameActive) return;
+                
+                this.isGameActive = true;
+                this.score = 0;
+                this.smallShits = [];
+                this.splitTimers = [];
+                
+                // 获取设置参数
+                const N = parseInt(document.getElementById('shitCountInput').value);
+                const t = parseInt(document.getElementById('splitTimeInput').value);
+                const T = parseInt(document.getElementById('totalTimeInput').value);
+                
+                this.splitTime = t * 1000; // 转换为毫秒
+                this.timeLeft = T;
+                this.totalTime = T; // 记录总时间用于计算通关时间
+                
+                // 隐藏大💩
+                this.bigShit.style.display = 'none';
+
+                // 更新按钮文本
+                document.getElementById('startBtn').textContent = '重新开始';
+
+                // 创建小💩
+                this.createSmallShits(N);
+
+                // 开始计时器
+                this.startTimer();
+
+                this.updateDisplay();
+            }
+
+            createSmallShits(count) {
+                for (let i = 0; i < count; i++) {
+                    this.createSmallShit();
+                }
+            }
+
+            createSmallShit() {
+                const shit = document.createElement('div');
+                shit.className = 'smallShit';
+                shit.textContent = '💩';
+
+                // 计算安全区域，避开信息框和规则框
+                let x, y;
+                let attempts = 0;
+                const maxAttempts = 50;
+
+                do {
+                    x = Math.random() * (window.innerWidth - 80);
+                    y = Math.random() * (window.innerHeight - 220) + 50;
+                    attempts++;
+                } while (this.isInRestrictedArea(x, y) && attempts < maxAttempts);
+
+                // 如果尝试多次仍在限制区域，使用安全的中心区域
+                if (this.isInRestrictedArea(x, y)) {
+                    x = window.innerWidth / 2 + (Math.random() - 0.5) * 200;
+                    y = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
+                }
+
+                shit.style.left = x + 'px';
+                shit.style.top = y + 'px';
+                
+                shit.addEventListener('click', (e) => this.clickShit(e, shit));
+
+                this.gameContainer.appendChild(shit);
+                this.smallShits.push(shit);
+
+                // 设置分裂计时器
+                this.setSplitTimer(shit);
+            }
+
+            setSplitTimer(shit) {
+                const splitTimer = setTimeout(() => {
+                    if (this.isGameActive && this.smallShits.includes(shit)) {
+                        this.splitShit(shit);
+                    }
+                }, this.splitTime);
+
+                this.splitTimers.push(splitTimer);
+
+                // 将计时器ID存储在💩元素上，方便后续清理
+                shit.splitTimerId = splitTimer;
+            }
+
+            isInRestrictedArea(x, y) {
+                // 检查是否在左上角信息框区域 (大约 350x120 像素)
+                if (x < 370 && y < 140) {
+                    return true;
+                }
+
+                // 检查是否在右上角规则框区域 (大约 320x180 像素)
+                // 只有当规则框可见时才限制这个区域
+                if (!this.instructions.classList.contains('hidden') &&
+                    x > window.innerWidth - 340 && y < 200) {
+                    return true;
+                }
+
+                // 检查是否在底部控制面板区域 (高度约 120 像素，包含padding和内容)
+                if (y > window.innerHeight - 140) {
+                    return true;
+                }
+
+                return false;
+            }
+
+            clickShit(event, shit) {
+                event.stopPropagation();
+
+                if (!this.isGameActive) return;
+
+                // 清除该💩的分裂计时器
+                if (shit.splitTimerId) {
+                    clearTimeout(shit.splitTimerId);
+                    const timerIndex = this.splitTimers.indexOf(shit.splitTimerId);
+                    if (timerIndex > -1) {
+                        this.splitTimers.splice(timerIndex, 1);
+                    }
+                }
+
+                // 添加爆炸效果
+                shit.classList.add('exploding');
+
+                setTimeout(() => {
+                    const index = this.smallShits.indexOf(shit);
+                    if (index > -1) {
+                        this.smallShits.splice(index, 1);
+                        shit.remove();
+                        this.score += 10;
+                        this.updateDisplay();
+
+                        // 检查胜利条件
+                        if (this.smallShits.length === 0) {
+                            this.endGame(true);
+                        }
+                    }
+                }, 300);
+            }
+
+            splitShit(originalShit) {
+                if (!this.isGameActive) return;
+
+                // 清除原💩的计时器引用
+                if (originalShit.splitTimerId) {
+                    const timerIndex = this.splitTimers.indexOf(originalShit.splitTimerId);
+                    if (timerIndex > -1) {
+                        this.splitTimers.splice(timerIndex, 1);
+                    }
+                }
+
+                // 为原💩重新设置分裂计时器
+                this.setSplitTimer(originalShit);
+
+                // 创建新的💩（也会自动设置分裂计时器）
+                this.createSmallShit();
+                this.updateDisplay();
+            }
+
+            startTimer() {
+                this.gameTimer = setInterval(() => {
+                    this.timeLeft--;
+                    this.timer.textContent = `时间: ${this.timeLeft}s`;
+                    
+                    if (this.timeLeft <= 0) {
+                        this.endGame(false);
+                    }
+                }, 1000);
+                
+                this.timer.textContent = `时间: ${this.timeLeft}s`;
+            }
+
+            endGame(victory) {
+                this.isGameActive = false;
+
+                // 清除所有计时器
+                clearInterval(this.gameTimer);
+                this.splitTimers.forEach(timer => clearTimeout(timer));
+                this.splitTimers = [];
+
+                // 计算通关时间
+                const usedTime = this.totalTime - this.timeLeft;
+
+                // 显示结果
+                if (victory) {
+                    this.gameResult.textContent = '🎉 你把💩淹没了！';
+                    this.gameResult.style.color = '#4caf50';
+                    this.gameStats.textContent = `通关时间: ${usedTime}秒 | 最终得分: ${this.score}`;
+                } else {
+                    this.gameResult.textContent = '💩 你被💩淹没了！';
+                    this.gameResult.style.color = '#f44336';
+                    this.gameStats.textContent = `最终得分: ${this.score} | 剩余💩: ${this.smallShits.length}`;
+                }
+
+                this.gameOverlay.style.display = 'flex';
+            }
+
+            restartGame() {
+                // 清理游戏状态
+                this.smallShits.forEach(shit => shit.remove());
+                this.smallShits = [];
+                this.splitTimers.forEach(timer => clearTimeout(timer));
+                this.splitTimers = [];
+                clearInterval(this.gameTimer);
+                
+                // 重置UI
+                this.bigShit.style.display = 'block';
+                this.gameOverlay.style.display = 'none';
+                this.timer.textContent = '准备开始';
+                this.isGameActive = false;
+                this.score = 0;
+
+                // 重置按钮文本
+                document.getElementById('startBtn').textContent = '开始游戏';
+
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                this.shitCountDisplay.textContent = this.smallShits.length;
+                this.scoreDisplay.textContent = this.score;
+            }
+        }
+
+        // 初始化游戏
+        const game = new ShitStorm();
+    </script>
+</body>
+</html>

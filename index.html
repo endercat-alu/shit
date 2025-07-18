@@ -277,6 +277,26 @@
             50% { transform: translateY(-10px); }
         }
 
+        /* 爆炸粒子样式 */
+        .explosion-particle {
+            position: fixed;
+            font-size: 2rem;
+            pointer-events: none;
+            z-index: 9999;
+            user-select: none;
+        }
+
+        @keyframes explode {
+            0% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.3) rotate(720deg);
+            }
+        }
+
         .navigation-section {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
@@ -467,12 +487,78 @@
         const clickHint = document.getElementById('clickHint');
         const mainContent = document.getElementById('mainContent');
 
-        function showMainContent() {
-            // 添加淡出效果
-            shitEmoji.classList.add('fade-out');
-            clickHint.classList.add('fade-out');
+        function createExplosion(centerX, centerY) {
+            const particleCount = 20; // 粒子数量
+            const particles = [];
 
-            // 1秒后删除元素并显示主内容
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'explosion-particle';
+                particle.textContent = '💩';
+
+                // 随机大小
+                const size = Math.random() * 1.5 + 0.5; // 0.5-2倍大小
+                particle.style.fontSize = (size * 2) + 'rem';
+
+                // 设置初始位置（屏幕中心）
+                particle.style.left = centerX + 'px';
+                particle.style.top = centerY + 'px';
+
+                // 计算随机方向和距离
+                const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+                const distance = Math.random() * 300 + 200; // 200-500px的飞行距离
+                const endX = centerX + Math.cos(angle) * distance;
+                const endY = centerY + Math.sin(angle) * distance;
+
+                // 随机飞行时间
+                const duration = Math.random() * 1000 + 1500; // 1.5-2.5秒
+
+                document.body.appendChild(particle);
+                particles.push(particle);
+
+                // 创建飞行动画
+                particle.animate([
+                    {
+                        left: centerX + 'px',
+                        top: centerY + 'px',
+                        opacity: 1,
+                        transform: 'scale(1) rotate(0deg)'
+                    },
+                    {
+                        left: endX + 'px',
+                        top: endY + 'px',
+                        opacity: 0,
+                        transform: 'scale(0.3) rotate(720deg)'
+                    }
+                ], {
+                    duration: duration,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    fill: 'forwards'
+                });
+
+                // 清理粒子
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.remove();
+                    }
+                }, duration);
+            }
+        }
+
+        function showMainContent() {
+            // 获取💩的中心位置
+            const rect = shitEmoji.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            // 创建爆炸效果
+            createExplosion(centerX, centerY);
+
+            // 立即隐藏原始💩和提示文字
+            shitEmoji.style.opacity = '0';
+            clickHint.style.opacity = '0';
+
+            // 等待爆炸动画进行一段时间后显示主内容
             setTimeout(() => {
                 shitEmoji.remove();
                 clickHint.remove();
@@ -493,7 +579,7 @@
                         mainContent.style.transform = 'scale(1)';
                     }, 50);
                 }, 50);
-            }, 1000);
+            }, 800); // 稍微缩短等待时间，让主内容更快出现
         }
 
         shitEmoji.addEventListener('click', showMainContent);

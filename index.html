@@ -42,6 +42,29 @@
             animation: none;
         }
 
+        .click-hint {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            user-select: none;
+            text-align: center;
+            animation: fadeInOut 3s ease-in-out infinite;
+        }
+
+        .click-hint.fade-out {
+            opacity: 0 !important;
+            animation: none;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+
         @keyframes pulse {
             0% {
                 transform: scale(1);
@@ -326,6 +349,37 @@
 
 
 
+        /* GitHub链接样式 */
+        .github-link {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #333;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .github-link:hover {
+            background: #24292e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .github-link::before {
+            content: "⭐";
+            font-size: 1.1rem;
+        }
+
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
@@ -339,11 +393,24 @@
             .nav-title {
                 font-size: 1.5rem;
             }
+
+            .github-link {
+                top: 10px;
+                right: 10px;
+                padding: 10px 14px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- GitHub链接 -->
+    <a href="https://github.com/endercat-alu/shit" target="_blank" class="github-link">
+        GitHub
+    </a>
+
     <div class="shit-emoji" id="shitEmoji">💩</div>
+    <div class="click-hint" id="clickHint">点击任意地方进入网站</div>
 
     <!-- 主内容区域 -->
     <div class="main-content" id="mainContent">
@@ -397,15 +464,18 @@
 
     <script>
         const shitEmoji = document.getElementById('shitEmoji');
+        const clickHint = document.getElementById('clickHint');
         const mainContent = document.getElementById('mainContent');
 
         function showMainContent() {
             // 添加淡出效果
             shitEmoji.classList.add('fade-out');
+            clickHint.classList.add('fade-out');
 
             // 1秒后删除元素并显示主内容
             setTimeout(() => {
                 shitEmoji.remove();
+                clickHint.remove();
                 document.body.style.overflow = 'auto';
                 mainContent.style.display = 'block';
 
@@ -427,6 +497,7 @@
         }
 
         shitEmoji.addEventListener('click', showMainContent);
+        clickHint.addEventListener('click', showMainContent);
 
         // 点击背景也能触发效果
         document.body.addEventListener('click', function(e) {

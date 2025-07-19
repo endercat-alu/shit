@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫Shit游戏</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <style>
+        :root {
+            /* 日间模式颜色变量 */
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --title-color: white;
+            --title-shadow: rgba(0,0,0,0.5);
+            --control-bg: rgba(255,255,255,0.9);
+            --control-text: #333;
+            --control-border: #ddd;
+            --btn-bg: #667eea;
+            --btn-hover: #5a6fd8;
+            --btn-disabled: #ccc;
+            --board-bg: rgba(255,255,255,0.95);
+            --cell-bg: #ddd;
+            --cell-revealed: #fff;
+            --cell-border: #ccc;
+            --grid-border: #666;
+            --message-bg: rgba(0,0,0,0.9);
+            --message-text: white;
+        }
+
+        /* 夜间模式颜色变量 */
+        [data-theme="dark"] {
+            --bg-gradient-start: #2c3e50;
+            --bg-gradient-end: #34495e;
+            --title-color: #ecf0f1;
+            --title-shadow: rgba(0,0,0,0.8);
+            --control-bg: rgba(52, 73, 94, 0.9);
+            --control-text: #ecf0f1;
+            --control-border: #7f8c8d;
+            --btn-bg: #3498db;
+            --btn-hover: #2980b9;
+            --btn-disabled: #7f8c8d;
+            --board-bg: rgba(44, 62, 80, 0.95);
+            --cell-bg: #7f8c8d;
+            --cell-revealed: #95a5a6;
+            --cell-border: #34495e;
+            --grid-border: #2c3e50;
+            --message-bg: rgba(44, 62, 80, 0.95);
+            --message-text: #ecf0f1;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+            overflow-x: auto;
+            overflow-y: auto;
+            transition: background 0.3s ease;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            align-items: center;
+            position: relative;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: var(--control-bg);
+            border: 2px solid var(--control-border);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .title {
+            text-align: center;
+            color: var(--title-color);
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px var(--title-shadow);
+            transition: color 0.3s ease;
+        }
+
+        .controls {
+            background: var(--control-bg);
+            padding: 20px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            color: var(--control-text);
+            transition: color 0.3s ease;
+        }
+
+        .control-group input {
+            width: 60px;
+            padding: 5px;
+            border: 2px solid var(--control-border);
+            border-radius: 5px;
+            text-align: center;
+            font-size: 16px;
+            background: var(--cell-revealed);
+            color: var(--control-text);
+            transition: all 0.3s ease;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: var(--btn-bg);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: var(--btn-hover);
+        }
+
+        .btn:disabled {
+            background: var(--btn-disabled);
+            cursor: not-allowed;
+        }
+
+        .game-info {
+            background: var(--control-bg);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: var(--control-text);
+            transition: all 0.3s ease;
+        }
+
+        .game-board {
+            background: var(--board-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            display: inline-block;
+            transition: background 0.3s ease;
+        }
+
+        .grid {
+            display: grid;
+            gap: 2px;
+            background: var(--grid-bg);
+            border: 2px solid var(--grid-border);
+            transition: all 0.3s ease;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background: var(--cell-bg);
+            border: 2px outset var(--cell-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+
+        .cell:hover {
+            filter: brightness(1.1);
+        }
+
+        .cell.revealed {
+            background: var(--cell-revealed);
+            border: 1px inset var(--cell-border);
+            cursor: default;
+        }
+
+        .cell.flagged {
+            background: #ffeb3b;
+            border: 2px outset #ffeb3b;
+        }
+
+        .cell.flagged::after {
+            content: '🚩';
+            font-size: 16px;
+        }
+
+        .cell.shit {
+            background: #f44336;
+            border: 1px inset #f44336;
+        }
+
+        .cell.shit::after {
+            content: '💩';
+            font-size: 16px;
+        }
+
+        /* 游戏结束后正确标记的shit旗子样式 */
+        .cell.flagged.correct-flag {
+            position: relative;
+        }
+
+        .cell.flagged.correct-flag::before {
+            content: '💩';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            z-index: 1;
+        }
+
+        .cell.flagged.correct-flag::after {
+            content: '🚩';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            opacity: 0.6;
+            z-index: 2;
+        }
+
+        .cell.number-1 { color: #1976d2; }
+        .cell.number-2 { color: #388e3c; }
+        .cell.number-3 { color: #f57c00; }
+        .cell.number-4 { color: #7b1fa2; }
+        .cell.number-5 { color: #d32f2f; }
+        .cell.number-6 { color: #00796b; }
+        .cell.number-7 { color: #303f9f; }
+        .cell.number-8 { color: #424242; }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--message-bg);
+            color: var(--message-text);
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 1.8em;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        .message.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .mobile-controls {
+            background: var(--control-bg);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            transition: background 0.3s ease;
+        }
+
+        .mode-btn {
+            background: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            min-width: 140px;
+        }
+
+        .mode-btn:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+        }
+
+        .mode-btn.flag-mode {
+            background: #4caf50;
+        }
+
+        .mode-btn.flag-mode:hover {
+            background: #45a049;
+        }
+
+        /* 手机适配 */
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 10px;
+            }
+
+            .title {
+                font-size: 2em;
+                margin-bottom: 15px;
+            }
+
+            .controls {
+                padding: 15px;
+                gap: 15px;
+            }
+
+            .control-group {
+                flex-direction: column;
+                gap: 5px;
+                text-align: center;
+            }
+
+            .control-group input {
+                width: 50px;
+                font-size: 14px;
+            }
+
+            .btn {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+
+            .game-info {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .mobile-controls {
+                display: block !important;
+            }
+
+            .cell {
+                width: 25px;
+                height: 25px;
+                font-size: 12px;
+            }
+
+            .cell.flagged::after,
+            .cell.shit::after {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- 主题切换按钮 -->
+        <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+            <span id="themeIcon">🌙</span>
+        </div>
+
+        <h1 class="title">💩 扫Shit游戏 🚩</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="width">宽度:</label>
+                <input type="number" id="width" min="5" max="30" value="10">
+            </div>
+            <div class="control-group">
+                <label for="height">高度:</label>
+                <input type="number" id="height" min="5" max="20" value="10">
+            </div>
+            <div class="control-group">
+                <label for="shitCount">Shit数:</label>
+                <input type="number" id="shitCount" min="1" max="99" value="15">
+            </div>
+            <button class="btn" id="newGameBtn" onclick="newGame()">新游戏</button>
+        </div>
+
+        <div class="game-info">
+            <div>剩余Shit: <span id="remainingShits">15</span></div>
+            <div>状态: <span id="gameStatus">未开始</span></div>
+            <div>时间: <span id="timer">00:00</span></div>
+        </div>
+
+        <!-- 手机端模式切换按钮 -->
+        <div class="mobile-controls" id="mobileControls" style="display: none;">
+            <button class="btn mode-btn" id="modeBtn" onclick="toggleMode()">
+                <span id="modeIcon">💣</span>
+                <span id="modeText">扫雷模式</span>
+            </button>
+        </div>
+
+        <div class="game-board">
+            <div class="grid" id="gameGrid"></div>
+        </div>
+
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            width: 10,
+            height: 10,
+            shitCount: 15,
+            grid: [],
+            revealed: [],
+            flagged: [],
+            gameOver: false,
+            gameWon: false,
+            gameStarted: false,
+            startTime: null,
+            timerInterval: null,
+            isMobile: false,
+            flagMode: false, // 手机端的插旗模式
+            theme: 'auto' // 主题设置: 'light', 'dark', 'auto'
+        };
+
+        // 初始化游戏
+        function initGame() {
+            // 获取参数
+            gameState.width = parseInt(document.getElementById('width').value);
+            gameState.height = parseInt(document.getElementById('height').value);
+            gameState.shitCount = parseInt(document.getElementById('shitCount').value);
+
+            // 验证参数
+            const maxShits = gameState.width * gameState.height - 1;
+            if (gameState.shitCount > maxShits) {
+                gameState.shitCount = maxShits;
+                document.getElementById('shitCount').value = maxShits;
+            }
+
+            // 重置状态
+            gameState.grid = [];
+            gameState.revealed = [];
+            gameState.flagged = [];
+            gameState.gameOver = false;
+            gameState.gameWon = false;
+            gameState.gameStarted = false;
+            gameState.startTime = null;
+
+            // 停止计时器
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+                gameState.timerInterval = null;
+            }
+
+            // 初始化网格
+            for (let i = 0; i < gameState.height; i++) {
+                gameState.grid[i] = [];
+                gameState.revealed[i] = [];
+                gameState.flagged[i] = [];
+                for (let j = 0; j < gameState.width; j++) {
+                    gameState.grid[i][j] = 0;
+                    gameState.revealed[i][j] = false;
+                    gameState.flagged[i][j] = false;
+                }
+            }
+
+            // 随机放置shit
+            let shitsPlaced = 0;
+            while (shitsPlaced < gameState.shitCount) {
+                const row = Math.floor(Math.random() * gameState.height);
+                const col = Math.floor(Math.random() * gameState.width);
+                
+                if (gameState.grid[row][col] !== -1) {
+                    gameState.grid[row][col] = -1; // -1 表示shit
+                    shitsPlaced++;
+                }
+            }
+
+            // 计算数字
+            for (let i = 0; i < gameState.height; i++) {
+                for (let j = 0; j < gameState.width; j++) {
+                    if (gameState.grid[i][j] !== -1) {
+                        gameState.grid[i][j] = countAdjacentShits(i, j);
+                    }
+                }
+            }
+
+            // 更新UI
+            updateGameInfo();
+            renderGrid();
+        }
+
+        // 计算相邻shit数量
+        function countAdjacentShits(row, col) {
+            let count = 0;
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    const newRow = row + i;
+                    const newCol = col + j;
+                    if (newRow >= 0 && newRow < gameState.height &&
+                        newCol >= 0 && newCol < gameState.width &&
+                        gameState.grid[newRow][newCol] === -1) {
+                        count++;
+                    }
+                }
+            }
+            return count;
+        }
+
+        // 渲染游戏网格
+        function renderGrid() {
+            const gridElement = document.getElementById('gameGrid');
+            gridElement.innerHTML = '';
+            gridElement.style.gridTemplateColumns = `repeat(${gameState.width}, 1fr)`;
+            gridElement.style.gridTemplateRows = `repeat(${gameState.height}, 1fr)`;
+
+            for (let i = 0; i < gameState.height; i++) {
+                for (let j = 0; j < gameState.width; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+
+                    // 添加事件监听
+                    cell.addEventListener('click', () => handleCellClick(i, j));
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        handleRightClick(i, j);
+                    });
+
+                    updateCellDisplay(cell, i, j);
+                    gridElement.appendChild(cell);
+                }
+            }
+        }
+
+        // 清除所有特殊样式
+        function clearSpecialStyles() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                cell.classList.remove('correct-flag');
+            });
+        }
+
+        // 更新单元格显示
+        function updateCellDisplay(cell, row, col) {
+            cell.className = 'cell';
+            cell.textContent = '';
+
+            if (gameState.flagged[row][col]) {
+                cell.classList.add('flagged');
+            } else if (gameState.revealed[row][col]) {
+                cell.classList.add('revealed');
+                if (gameState.grid[row][col] === -1) {
+                    cell.classList.add('shit');
+                } else if (gameState.grid[row][col] > 0) {
+                    cell.textContent = gameState.grid[row][col];
+                    cell.classList.add(`number-${gameState.grid[row][col]}`);
+                }
+            }
+        }
+
+        // 处理单元格点击
+        function handleCellClick(row, col) {
+            if (gameState.gameOver || gameState.gameWon ||
+                gameState.flagged[row][col] || gameState.revealed[row][col]) {
+                return;
+            }
+
+            // 手机端：检查是否为插旗模式
+            if (gameState.isMobile && gameState.flagMode) {
+                handleRightClick(row, col);
+                return;
+            }
+
+            // 开始游戏
+            if (!gameState.gameStarted) {
+                gameState.gameStarted = true;
+                startTimer();
+                updateGameInfo();
+            }
+
+            // 如果点击到shit
+            if (gameState.grid[row][col] === -1) {
+                gameOver(false);
+                return;
+            }
+
+            // 揭示单元格
+            revealCell(row, col);
+
+            // 检查是否获胜
+            checkWin();
+        }
+
+        // 处理右键点击（标记/取消标记）
+        function handleRightClick(row, col) {
+            if (gameState.gameOver || gameState.gameWon || gameState.revealed[row][col]) {
+                return;
+            }
+
+            gameState.flagged[row][col] = !gameState.flagged[row][col];
+
+            // 更新显示
+            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            updateCellDisplay(cell, row, col);
+
+            updateGameInfo();
+        }
+
+        // 揭示单元格
+        function revealCell(row, col) {
+            if (row < 0 || row >= gameState.height || col < 0 || col >= gameState.width ||
+                gameState.revealed[row][col] || gameState.flagged[row][col]) {
+                return;
+            }
+
+            gameState.revealed[row][col] = true;
+            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            updateCellDisplay(cell, row, col);
+
+            // 如果是空白区域，自动揭示相邻区域
+            if (gameState.grid[row][col] === 0) {
+                for (let i = -1; i <= 1; i++) {
+                    for (let j = -1; j <= 1; j++) {
+                        revealCell(row + i, col + j);
+                    }
+                }
+            }
+        }
+
+        // 检查是否获胜
+        function checkWin() {
+            let revealedCount = 0;
+            for (let i = 0; i < gameState.height; i++) {
+                for (let j = 0; j < gameState.width; j++) {
+                    if (gameState.revealed[i][j]) {
+                        revealedCount++;
+                    }
+                }
+            }
+
+            const totalCells = gameState.width * gameState.height;
+            if (revealedCount === totalCells - gameState.shitCount) {
+                gameOver(true);
+            }
+        }
+
+        // 游戏结束
+        function gameOver(won) {
+            gameState.gameOver = true;
+            gameState.gameWon = won;
+
+            // 停止计时器
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+                gameState.timerInterval = null;
+            }
+
+            // 处理所有shit位置
+            for (let i = 0; i < gameState.height; i++) {
+                for (let j = 0; j < gameState.width; j++) {
+                    if (gameState.grid[i][j] === -1) {
+                        const cell = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+
+                        if (gameState.flagged[i][j]) {
+                            // 如果这个shit被正确标记了旗子，添加特殊样式
+                            cell.classList.add('correct-flag');
+                        } else {
+                            // 如果这个shit没有被标记，正常揭示
+                            gameState.revealed[i][j] = true;
+                            updateCellDisplay(cell, i, j);
+                        }
+                    }
+                }
+            }
+
+            // 显示结果消息
+            const message = won ? '🎉 恭喜！你成功避开了所有的shit！' : '💩 踩到shit了！游戏结束！';
+            showMessage(message);
+
+            updateGameInfo();
+        }
+
+        // 开始计时器
+        function startTimer() {
+            gameState.startTime = Date.now();
+            gameState.timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        // 更新游戏信息
+        function updateGameInfo() {
+            // 计算剩余shit数（总shit数 - 已标记的旗子数）
+            let flaggedCount = 0;
+            for (let i = 0; i < gameState.height; i++) {
+                for (let j = 0; j < gameState.width; j++) {
+                    if (gameState.flagged[i][j]) {
+                        flaggedCount++;
+                    }
+                }
+            }
+
+            const remainingShits = gameState.shitCount - flaggedCount;
+            document.getElementById('remainingShits').textContent = remainingShits;
+
+            // 更新游戏状态
+            let status = '未开始';
+            if (gameState.gameStarted && !gameState.gameOver && !gameState.gameWon) {
+                status = '进行中';
+            } else if (gameState.gameWon) {
+                status = '🎉 胜利！';
+            } else if (gameState.gameOver) {
+                status = '💩 失败！';
+            }
+            document.getElementById('gameStatus').textContent = status;
+        }
+
+        // 显示消息
+        function showMessage(text, duration = 3000) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.classList.add('show');
+
+            setTimeout(() => {
+                messageEl.classList.remove('show');
+            }, duration);
+        }
+
+        // 新游戏
+        function newGame() {
+            // 隐藏消息
+            document.getElementById('message').classList.remove('show');
+
+            // 重置计时器显示
+            document.getElementById('timer').textContent = '00:00';
+
+            // 清除特殊样式
+            clearSpecialStyles();
+
+            // 重置手机端模式
+            if (gameState.isMobile) {
+                gameState.flagMode = false;
+                updateModeButton();
+            }
+
+            // 初始化游戏
+            initGame();
+        }
+
+        // 检测是否为手机设备
+        function detectMobile() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isSmallScreen = window.innerWidth <= 768;
+
+            gameState.isMobile = isMobileUA && isTouchDevice && isSmallScreen;
+
+            // 显示/隐藏手机控制按钮
+            const mobileControls = document.getElementById('mobileControls');
+            if (gameState.isMobile) {
+                mobileControls.style.display = 'block';
+            } else {
+                mobileControls.style.display = 'none';
+            }
+
+            return gameState.isMobile;
+        }
+
+        // 切换手机端模式（扫雷/插旗）
+        function toggleMode() {
+            if (!gameState.isMobile) return;
+
+            gameState.flagMode = !gameState.flagMode;
+            updateModeButton();
+        }
+
+        // 更新模式按钮显示
+        function updateModeButton() {
+            if (!gameState.isMobile) return;
+
+            const modeBtn = document.getElementById('modeBtn');
+            const modeIcon = document.getElementById('modeIcon');
+            const modeText = document.getElementById('modeText');
+
+            if (gameState.flagMode) {
+                modeBtn.classList.add('flag-mode');
+                modeIcon.textContent = '🚩';
+                modeText.textContent = '插旗模式';
+            } else {
+                modeBtn.classList.remove('flag-mode');
+                modeIcon.textContent = '💣';
+                modeText.textContent = '扫雷模式';
+            }
+        }
+
+        // 主题管理
+        function getSystemTheme() {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        function getCurrentTheme() {
+            if (gameState.theme === 'auto') {
+                return getSystemTheme();
+            }
+            return gameState.theme;
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeIcon(theme);
+        }
+
+        function updateThemeIcon(theme) {
+            const themeIcon = document.getElementById('themeIcon');
+            if (theme === 'dark') {
+                themeIcon.textContent = '☀️';
+            } else {
+                themeIcon.textContent = '🌙';
+            }
+        }
+
+        function toggleTheme() {
+            let newTheme;
+            const currentTheme = getCurrentTheme();
+
+            if (gameState.theme === 'auto') {
+                // 从自动模式切换到相反的主题
+                newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            } else if (gameState.theme === 'light') {
+                newTheme = 'dark';
+            } else {
+                newTheme = 'auto';
+            }
+
+            gameState.theme = newTheme;
+            saveThemePreference();
+
+            const actualTheme = getCurrentTheme();
+            applyTheme(actualTheme);
+        }
+
+        function saveThemePreference() {
+            try {
+                localStorage.setItem('shitsweeper-theme', gameState.theme);
+            } catch (e) {
+                console.warn('无法保存主题设置:', e);
+            }
+        }
+
+        function loadThemePreference() {
+            try {
+                const savedTheme = localStorage.getItem('shitsweeper-theme');
+                if (savedTheme && ['light', 'dark', 'auto'].includes(savedTheme)) {
+                    gameState.theme = savedTheme;
+                }
+            } catch (e) {
+                console.warn('无法加载主题设置:', e);
+            }
+        }
+
+        function initTheme() {
+            loadThemePreference();
+            const currentTheme = getCurrentTheme();
+            applyTheme(currentTheme);
+
+            // 监听系统主题变化
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                if (gameState.theme === 'auto') {
+                    const newTheme = getCurrentTheme();
+                    applyTheme(newTheme);
+                }
+            });
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', () => {
+            // 初始化主题
+            initTheme();
+
+            // 检测设备类型
+            detectMobile();
+
+            // 验证输入值
+            document.getElementById('width').addEventListener('change', function() {
+                const value = parseInt(this.value);
+                if (value < 5) this.value = 5;
+                if (value > 30) this.value = 30;
+                updateShitCountLimit();
+            });
+
+            document.getElementById('height').addEventListener('change', function() {
+                const value = parseInt(this.value);
+                if (value < 5) this.value = 5;
+                if (value > 20) this.value = 20;
+                updateShitCountLimit();
+            });
+
+            document.getElementById('shitCount').addEventListener('change', function() {
+                const value = parseInt(this.value);
+                if (value < 1) this.value = 1;
+                updateShitCountLimit();
+            });
+
+            function updateShitCountLimit() {
+                const width = parseInt(document.getElementById('width').value);
+                const height = parseInt(document.getElementById('height').value);
+                const maxShits = width * height - 1;
+                const shitCountInput = document.getElementById('shitCount');
+
+                shitCountInput.max = maxShits;
+                if (parseInt(shitCountInput.value) > maxShits) {
+                    shitCountInput.value = maxShits;
+                }
+            }
+
+            // 初始化游戏
+            initGame();
+
+            // 添加键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'F2') {
+                    e.preventDefault();
+                    newGame();
+                }
+            });
+        });
+
+        // 窗口大小改变时重新检测设备
+        window.addEventListener('resize', () => {
+            detectMobile();
+        });
+
+        // 防止右键菜单
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.classList.contains('cell')) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
